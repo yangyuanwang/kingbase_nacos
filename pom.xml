@@ -994,6 +994,19 @@
                 <artifactId>snakeyaml</artifactId>
                 <version>${SnakeYaml.version}</version>
             </dependency>
+
+            <!--人大金仓库-->
+            <dependency>
+                <groupId>cn.com.kingbase</groupId>
+                <artifactId>kingbase8</artifactId>
+                <version>8.6.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.pig4cloud.plugin</groupId>
+                <artifactId>nacos-datasource-plugin-kingbase</artifactId>
+                <version>0.0.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     

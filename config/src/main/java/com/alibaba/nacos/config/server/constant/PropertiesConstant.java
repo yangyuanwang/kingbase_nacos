@@ -62,6 +62,11 @@ public class PropertiesConstant {
     public static final String DUMP_CHANGE_ON = "dumpChangeOn";
     
     public static final String DUMP_CHANGE_WORKER_INTERVAL = "dumpChangeWorkerInterval";
-    
-    
+
+    public static final String KINGBASE = "kingbase8";
+
+    public static final String MYSQL = "mysql";
+
+    public static final String EMBEDDED_STORAGE = "embedded.storage";
+
 }

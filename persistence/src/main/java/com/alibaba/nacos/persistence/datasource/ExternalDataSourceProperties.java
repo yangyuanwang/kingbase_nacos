@@ -27,6 +27,7 @@ import org.springframework.core.env.Environment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import static com.alibaba.nacos.common.utils.CollectionUtils.getOrDefault;
 
@@ -37,18 +38,32 @@ import static com.alibaba.nacos.common.utils.CollectionUtils.getOrDefault;
  */
 public class ExternalDataSourceProperties {
     
-    private static final String JDBC_DRIVER_NAME = "com.mysql.cj.jdbc.Driver";
-    
-    private static final String TEST_QUERY = "SELECT 1";
-    
+    private static final String JDBC_MYSQL_NAME = "com.mysql.cj.jdbc.Driver";
+
+    private static final String JDBC_KINGBASE_NAME = "com.kingbase8.Driver";
+
+    private static final long CONNECTION_TIMEOUT_MS = 3000L;
+
+    private static final long VALIDATION_TIMEOUT = 10L;
+
+    private static final String TEST_QUERY = "SELECT 1 FROM dual";
+
+    private static final int DEFAULT_MAX_POOL_SIZE = 20;
+
+    private static final int DEFAULT_MINIMUM_IDLE = 50;
+
     private Integer num;
-    
+
     private List<String> url = new ArrayList<>();
-    
+
     private List<String> user = new ArrayList<>();
-    
+
     private List<String> password = new ArrayList<>();
-    
+
+    private List<Integer> maxPoolSize = new ArrayList<>();
+
+    private List<Integer> minIdle = new ArrayList<>();
+
     public void setNum(Integer num) {
         this.num = num;
     }
@@ -81,25 +96,35 @@ public class ExternalDataSourceProperties {
         for (int index = 0; index < num; index++) {
             int currentSize = index + 1;
             Preconditions.checkArgument(url.size() >= currentSize, "db.url.%s is null", index);
-            DataSourcePoolProperties poolProperties = DataSourcePoolProperties.build(environment);
-            if (StringUtils.isEmpty(poolProperties.getDataSource().getDriverClassName())) {
-                poolProperties.setDriverClassName(JDBC_DRIVER_NAME);
+            HikariDataSource ds = new HikariDataSource();
+
+            // ds.setDriverClassName(JDBC_DRIVER_NAME)
+            // 增加对达梦、人大金仓数据库的支持
+            ds.setDriverClassName(JDBC_KINGBASE_NAME);
+            if (StringUtils.isNotEmpty(JDBC_KINGBASE_NAME)) {
+                // 增加对达梦、人大金仓数据库的支持
+                ds.setDriverClassName(JDBC_KINGBASE_NAME);
+            } else {
+                //默认使用mysql驱动
+                ds.setDriverClassName(JDBC_MYSQL_NAME);
             }
-            poolProperties.setJdbcUrl(url.get(index).trim());
-            poolProperties.setUsername(getOrDefault(user, index, user.get(0)).trim());
-            poolProperties.setPassword(getOrDefault(password, index, password.get(0)).trim());
-            HikariDataSource ds = poolProperties.getDataSource();
-            if (StringUtils.isEmpty(ds.getConnectionTestQuery())) {
-                ds.setConnectionTestQuery(TEST_QUERY);
-            }
-            
+
+            ds.setJdbcUrl(url.get(index).trim());
+            ds.setUsername(getOrDefault(user, index, user.get(0)).trim());
+            ds.setPassword(getOrDefault(password, index, password.get(0)).trim());
+            ds.setConnectionTimeout(CONNECTION_TIMEOUT_MS);
+            ds.setMaximumPoolSize(getOrDefault(maxPoolSize, index, DEFAULT_MAX_POOL_SIZE));
+            ds.setMinimumIdle(getOrDefault(minIdle, index, DEFAULT_MINIMUM_IDLE));
+            // Check the connection pool every 10 minutes
+            ds.setValidationTimeout(TimeUnit.MINUTES.toMillis(VALIDATION_TIMEOUT));
+            ds.setConnectionTestQuery(TEST_QUERY);
             dataSources.add(ds);
             callback.accept(ds);
         }
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(dataSources), "no datasource available");
         return dataSources;
     }
-    
+
     interface Callback<D> {
         
         /**

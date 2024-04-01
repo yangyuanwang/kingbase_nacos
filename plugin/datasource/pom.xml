@@ -34,6 +34,13 @@
             <artifactId>nacos-common</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <!--人大金仓库-->
+        <dependency>
+            <groupId>cn.com.kingbase</groupId>
+            <artifactId>kingbase8</artifactId>
+            <version>8.6.0</version>
+        </dependency>
     </dependencies>
 
 </project>

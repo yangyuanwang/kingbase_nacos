@@ -17,6 +17,7 @@
 package com.alibaba.nacos.config.server.utils;
 
 import com.alibaba.nacos.config.server.constant.PropertiesConstant;
+import com.alibaba.nacos.persistence.utils.DatasourcePlatformUtil;
 import com.alibaba.nacos.sys.env.EnvUtil;
 import org.slf4j.Logger;
 import org.springframework.context.ApplicationContextInitializer;
@@ -105,6 +106,22 @@ public class PropertyUtil implements ApplicationContextInitializer<ConfigurableA
      * dumpChangeWorkerInterval, default 30 seconds.
      */
     private static long dumpChangeWorkerInterval = 30 * 1000L;
+
+    public static boolean embeddedStorage = false;
+
+    private boolean useExternalDB;
+
+    private String getDatasourcePlatform() {
+        return DatasourcePlatformUtil.getDatasourcePlatform("");
+    }
+
+    private void setUseExternalDB(boolean useExternalStorage) {
+        this.useExternalDB = useExternalStorage;
+    }
+
+    private void setEmbeddedStorage(boolean embeddedStorage) {
+        this.embeddedStorage = embeddedStorage;
+    }
     
     public static boolean isDumpChangeOn() {
         return dumpChangeOn;
@@ -278,12 +295,33 @@ public class PropertyUtil implements ApplicationContextInitializer<ConfigurableA
             setDumpChangeOn(getBoolean(PropertiesConstant.DUMP_CHANGE_ON, dumpChangeOn));
             setDumpChangeWorkerInterval(
                     getLong(PropertiesConstant.DUMP_CHANGE_WORKER_INTERVAL, dumpChangeWorkerInterval));
+            String platform = DatasourcePlatformUtil.getDatasourcePlatform("");
+            boolean useExternalStorage = PropertiesConstant.MYSQL.equalsIgnoreCase(platform)
+                    ||
+                    PropertiesConstant.KINGBASE.equalsIgnoreCase(platform);
+            setUseExternalDB(useExternalStorage);
+            if (isUseExternalDB()) {
+                setEmbeddedStorage(false);
+            } else {
+                boolean embeddedStorage =
+                        PropertyUtil.embeddedStorage || Boolean.getBoolean(PropertiesConstant.EMBEDDED_STORAGE);
+                setEmbeddedStorage(embeddedStorage);
+                if (!embeddedStorage) {
+                    setUseExternalDB(true);
+                }
+            }
         } catch (Exception e) {
             LOGGER.error("read application.properties failed", e);
             throw e;
         }
     }
-    
+
+    private boolean isUseExternalDB() {
+        String platform = DatasourcePlatformUtil.getDatasourcePlatform("");
+        return PropertiesConstant.MYSQL.equalsIgnoreCase(platform)
+                || PropertiesConstant.KINGBASE.equalsIgnoreCase(platform);
+    }
+
     private boolean getBoolean(String key, boolean defaultValue) {
         return Boolean.parseBoolean(getString(key, String.valueOf(defaultValue)));
     }
